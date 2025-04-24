@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Source/Scenes/Lobby.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Source/Scenes/Race.unity
+    guid: 20f54ae1e96ed447a81266ace165e778
   m_configObjects: {}

@@ -1,4 +1,3 @@
-// LobbySystem.cs
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -7,68 +6,79 @@ using Fusion;
 using ObservableCollections;
 using R3;
 using TojGamesTask.Common.Networking;
+using UnityEngine;
 
 namespace TojGamesTask.Modules.Lobby.Domain
 {
     public sealed class LobbySystem : ILobbySystem, IDisposable
     {
-        readonly INetworkService _net;
-        readonly ObservableList<PlayerInfo> _players = new();
-        readonly HashSet<PlayerRef> _pending = new();
-        readonly ReactiveProperty<bool> _isHostInt = new(false);
-        readonly ReadOnlyReactiveProperty<bool> _isHost;
-        readonly ReactiveCommand _startCmd = new();
-        readonly ReactiveCommand _leaveCmd = new();
-        readonly CompositeDisposable _cleanup = new();
-
-        public LobbySystem(INetworkService network)
-        {
-            _net = network;
-            _isHost = _isHostInt.ToReadOnlyReactiveProperty().AddTo(_cleanup);
-            _net.PlayerJoined += OnJoined;
-            _net.PlayerLeft += OnLeft;
-            _leaveCmd
-                .Subscribe(_ => _players.Clear())
-                .AddTo(_cleanup);
-        }
+        private readonly INetworkService _net;
+        private readonly ObservableList<PlayerInfo> _players = new();
+        private readonly HashSet<PlayerRef> _pending = new();
+        private readonly ReactiveProperty<bool> _isHostInt = new(false);
+        private readonly ReadOnlyReactiveProperty<bool> _isHost;
+        private readonly ReactiveCommand _startCmd = new();
+        private readonly ReactiveCommand _leaveCmd = new();
+        private readonly CompositeDisposable _d = new();
 
         public IReadOnlyObservableList<PlayerInfo> Players => _players;
         public ReadOnlyReactiveProperty<bool> IsHost => _isHost;
         public ReactiveCommand StartCommand => _startCmd;
         public ReactiveCommand LeaveCommand => _leaveCmd;
 
-        void OnJoined(NetworkRunner runner, PlayerRef pr)
+        public LobbySystem(INetworkService network)
+        {
+            _net = network;
+            _isHost = _isHostInt.ToReadOnlyReactiveProperty().AddTo(_d);
+            _leaveCmd.Subscribe(_ => _players.Clear()).AddTo(_d);
+
+            _net.PlayerJoined
+                .Subscribe(tuple => OnJoined(tuple.Item1, tuple.Item2))
+                .AddTo(_d);
+
+            _net.PlayerLeft
+                .Subscribe(tuple => OnLeft(tuple.Item1, tuple.Item2))
+                .AddTo(_d);
+        }
+
+        private void OnJoined(NetworkRunner _, PlayerRef pr)
         {
             if (pr == _net.LocalPlayer)
                 _isHostInt.Value = _net.IsHost;
-            if (_players.Any(x => x.Id == pr) || _pending.Contains(pr))
+            
+            if (_players.Any(x => x.Id == pr) || !_pending.Add(pr))
                 return;
-            _pending.Add(pr);
-            Subscribe(runner, pr)
-                .ContinueWith(() => _pending.Remove(pr))
-                .Forget();
+
+            GetAvatar(pr).ContinueWith(() =>
+                _pending.Remove(pr)).Forget();
         }
 
-        async UniTask Subscribe(NetworkRunner runner, PlayerRef pr)
+        private async UniTask GetAvatar(PlayerRef pr)
         {
-            await UniTask.WaitUntil(() => runner != null && runner.TryGetPlayerObject(pr, out _));
-            var go = runner.GetPlayerObject(pr);
-            if (go == null) return;
-            var avatar = go.GetComponent<PlayerAvatar>();
-            if (avatar.HasName)
-                _players.Add(new PlayerInfo(pr, avatar.DisplayName));
-            avatar.NameChanged
-                .Where(t => t.Item1 == pr)
-                .Take(1)
-                .Subscribe(t =>
-                {
-                    if (_players.All(p => p.Id != pr))
-                        _players.Add(new PlayerInfo(pr, t.Item2));
-                })
-                .AddTo(_cleanup);
+            var avatar = await _net.GetAvatarAsync(pr);
+            if (avatar != null)
+                SubscribeToNameChange(pr, avatar);
         }
 
-        void OnLeft(NetworkRunner runner, PlayerRef pr)
+        private void SubscribeToNameChange(PlayerRef pr, PlayerAvatar avatar)
+        {
+            avatar.NameChanged
+                .Where(eventData => eventData.Item1 == pr)
+                .Select(eventData => eventData.Item2)
+                .Take(1)
+                .Subscribe(newName => TryAddPlayer(pr, newName, _players.All(p => p.Id != pr)))
+                .AddTo(_d);
+        }
+
+        private void TryAddPlayer(PlayerRef pr, string name, bool condition)
+        {
+            if (!condition)
+                return;
+
+            _players.Add(new PlayerInfo(pr, name));
+        }
+
+        private void OnLeft(NetworkRunner _, PlayerRef pr)
         {
             var e = _players.FirstOrDefault(x => x.Id == pr);
             _players.Remove(e);
@@ -76,9 +86,7 @@ namespace TojGamesTask.Modules.Lobby.Domain
 
         public void Dispose()
         {
-            _net.PlayerJoined -= OnJoined;
-            _net.PlayerLeft -= OnLeft;
-            _cleanup.Dispose();
+            _d.Dispose();
             _isHostInt.Dispose();
         }
     }

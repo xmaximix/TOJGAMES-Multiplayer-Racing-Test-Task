@@ -1,37 +1,42 @@
 using Fusion;
 using R3;
-using UnityEngine;
 
-public class PlayerAvatar : NetworkBehaviour
+namespace TojGamesTask.Common.Networking
 {
-    [Networked] public string DisplayName { get; private set; }
-
-    readonly ReplaySubject<(PlayerRef, string)> _nameChanged =
-        new ReplaySubject<(PlayerRef, string)>(1);
-
-    public ReplaySubject<(PlayerRef, string)> NameChanged => _nameChanged;
-    public bool HasName => !string.IsNullOrEmpty(DisplayName);
-
-    string _cached;       
-
-    [Rpc(sources: RpcSources.InputAuthority, targets: RpcTargets.StateAuthority)]
-    public void RPC_SetName(string value) => DisplayName = value;
-
-    public override void Spawned()
+    public class PlayerAvatar : NetworkBehaviour
     {
-        if (HasName)
+        [Networked]
+        public string DisplayName { get; private set; }
+
+        private readonly ReplaySubject<(PlayerRef player, string name)> _nameChangedSubject = new(1);
+        public ReplaySubject<(PlayerRef player, string name)> NameChanged => _nameChangedSubject;
+
+        public bool HasName => !string.IsNullOrEmpty(DisplayName);
+
+        private string _lastName;
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        public void RPC_SetName(string value)
         {
-            _cached = DisplayName;
-            _nameChanged.OnNext((Object.InputAuthority, DisplayName));
+            DisplayName = value;
         }
-    }
 
-    public override void Render()
-    {
-        if (DisplayName != _cached && HasName)
+        public override void Spawned()
         {
-            _cached = DisplayName;
-            _nameChanged.OnNext((Object.InputAuthority, DisplayName));
+            if (HasName)
+                PublishName(Object.InputAuthority, DisplayName);
+        }
+
+        public override void Render()
+        {
+            if (HasName && DisplayName != _lastName)
+                PublishName(Object.InputAuthority, DisplayName);
+        }
+
+        private void PublishName(PlayerRef player, string name)
+        {
+            _lastName = name;
+            _nameChangedSubject.OnNext((player, name));
         }
     }
 }

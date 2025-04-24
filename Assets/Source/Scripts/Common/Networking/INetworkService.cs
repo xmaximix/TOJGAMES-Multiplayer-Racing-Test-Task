@@ -9,10 +9,13 @@ namespace TojGamesTask.Common.Networking
     {
         NetworkRunner Runner { get; }
         Subject<Unit> SessionEnded { get; }
-        event Action<NetworkRunner, PlayerRef> PlayerJoined;
-        event Action<NetworkRunner, PlayerRef> PlayerLeft;
+
+        Subject<(NetworkRunner runner, PlayerRef player)> PlayerJoined { get; }
+        Subject<(NetworkRunner runner, PlayerRef player)> PlayerLeft { get; }
+
         bool IsHost { get; }
         PlayerRef LocalPlayer { get; }
+        UniTask<PlayerAvatar> GetAvatarAsync(PlayerRef player);
         UniTask<bool> StartGameAsync(string sessionName, string playerName);
         void Shutdown();
     }

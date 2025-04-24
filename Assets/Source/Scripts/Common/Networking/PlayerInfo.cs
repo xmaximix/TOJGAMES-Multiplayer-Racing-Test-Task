@@ -13,16 +13,17 @@ namespace TojGamesTask.Common.Networking
             Id = id;
             Name = name;
         }
+        
         public bool Equals(PlayerInfo other)
         {
             return Id.Equals(other.Id) && Name == other.Name;
         }
-        
+
         public override bool Equals(object obj)
         {
             return obj is PlayerInfo other && Equals(other);
         }
-        
+
         public override int GetHashCode()
         {
             return HashCode.Combine(Id, Name);

@@ -1,6 +1,8 @@
 // Editor_Tests/Modules/Lobby/LobbySystemTests.cs
 
 using System.Collections;
+using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Fusion;
 using NUnit.Framework;
@@ -20,10 +22,12 @@ namespace Editor_Tests.Modules.Lobby
 
         sealed class FakeNetwork : INetworkService
         {
+            private Subject<(NetworkRunner runner, PlayerRef player)> playerJoined;
+            private Subject<(NetworkRunner runner, PlayerRef player)> playerLeft;
             public NetworkRunner Runner { get; }
             public Subject<Unit> SessionEnded { get; } = new();
-            public event System.Action<NetworkRunner, PlayerRef> PlayerJoined;
-            public event System.Action<NetworkRunner, PlayerRef> PlayerLeft;
+            public Subject<(NetworkRunner runner, PlayerRef player)> PlayerJoined { get; } = new();
+            public Subject<(NetworkRunner runner, PlayerRef player)> PlayerLeft { get; }= new();
             public bool IsHost { get; set; }
             public PlayerRef LocalPlayer => PlayerRef.FromIndex(0);
             public UniTask<bool> StartGameAsync(string a, string b) => UniTask.FromResult(true);
@@ -36,6 +40,13 @@ namespace Editor_Tests.Modules.Lobby
 
             public void Shutdown() => SessionEnded.OnNext(Unit.Default);
 
+            private readonly Dictionary<PlayerRef, PlayerAvatar> _avatars = new();
+
+            public UniTask<PlayerAvatar> GetAvatarAsync(PlayerRef pr) =>
+                _avatars.TryGetValue(pr, out var av)
+                    ? UniTask.FromResult(av)
+                    : UniTask.FromCanceled<PlayerAvatar>(new CancellationToken(true));
+
             public void RegisterAvatar(PlayerRef pr, string name)
             {
                 var go = new GameObject($"Avatar_{pr.RawEncoded}");
@@ -44,10 +55,12 @@ namespace Editor_Tests.Modules.Lobby
 
                 var avatar = go.AddComponent<PlayerAvatar>();
                 avatar.NameChanged.OnNext((pr, name));
+
+                _avatars[pr] = avatar;
             }
 
-            public void RaiseJoin(PlayerRef pr) => PlayerJoined?.Invoke(Runner, pr);
-            public void RaiseLeft(PlayerRef pr) => PlayerLeft?.Invoke(Runner, pr);
+            public void RaiseJoin(PlayerRef pr) => PlayerJoined?.OnNext((Runner, pr));
+            public void RaiseLeft(PlayerRef pr) => PlayerLeft?.OnNext((Runner, pr));
         }
 
         [SetUp]

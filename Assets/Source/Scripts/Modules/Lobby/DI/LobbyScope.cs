@@ -22,18 +22,18 @@ namespace TojGamesTask.Modules.Lobby.DI
         protected override void Configure(IContainerBuilder builder)
         {
             base.Configure(builder);
-            
+
             builder.RegisterInstance(_inputAsset);
             builder.Register<IInputService, UnityInputService>(Lifetime.Singleton);
 
             builder.RegisterInstance(playerAvatarPrefab);
-            
+
             builder.Register<ILogger, UnityLogger>(Lifetime.Singleton);
-            
+
             builder.Register<INetworkService, FusionNetworkService>(Lifetime.Singleton);
             builder.Register<ISceneService, UnitySceneService>(Lifetime.Singleton);
             builder.Register<ILobbySystem, LobbySystem>(Lifetime.Singleton);
-            
+
             builder.RegisterComponent(_lobbyView);
             builder.Register<LobbyPresenter>(Lifetime.Singleton).As<IInitializable>();
         }
