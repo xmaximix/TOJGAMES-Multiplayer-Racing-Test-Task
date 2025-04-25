@@ -5,9 +5,9 @@ Players can enter a nickname, join a lobby, start a race, drive cars, and see a 
 Everything works across scenes, and core systems are modular
 
 What could be improved:
-	•	Right now, many objects like the track and views are already in the scenes. In production, they should be instantiated at runtime
-	•	There’s no real game loop (no Restart, Pause)
-	•	I’m not handling errors well, like connection failures
-	•	The views and gameplay are pretty stub
+Right now, many objects like the track and views are already in the scenes. In production, they should be instantiated at runtime
+There’s no real game loop (no Restart, Pause)
+I’m not handling errors well, like connection failures
+The views and gameplay are pretty stub
 
 Overall, a solid prototype. With more time, I’d focus on polish, better object management, and adding more game flow features
