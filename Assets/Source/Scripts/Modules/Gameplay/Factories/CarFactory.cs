@@ -17,7 +17,6 @@ namespace TojGamesTask.Modules.Gameplay.Factories
         private readonly CarConfig carConfig;
         private readonly NetworkObject carPrefab;
 
-        [Inject]
         public CarFactory(
             TrackScript track,
             INetworkService networkService,

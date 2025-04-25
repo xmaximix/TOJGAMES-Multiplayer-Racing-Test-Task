@@ -26,7 +26,6 @@ namespace TojGamesTask.Modules.Lobby.Presentation
         private readonly CompositeDisposable d = new();
         private PlayerAvatar avatar;
 
-        [Inject]
         public LobbyPresenter(
             LobbyView view,
             ILobbySystem lobbySystem,

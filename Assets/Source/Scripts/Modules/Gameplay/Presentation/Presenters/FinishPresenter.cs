@@ -23,7 +23,6 @@ namespace TojGamesTask.Modules.Gameplay.Presenters
 
         private readonly Dictionary<PlayerRef, string> nameMap = new();
 
-        [Inject]
         public FinishPresenter(
             FinishView view,
             RaceSystem raceSystem,

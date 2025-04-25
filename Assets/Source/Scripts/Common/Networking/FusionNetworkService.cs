@@ -37,7 +37,6 @@ namespace TojGamesTask.Common.Networking
         public IReadOnlyDictionary<PlayerRef,string> Nicknames => nickMap;
 
         
-        [Inject]
         public FusionNetworkService(
             IInputService inputService,
             PlayerAvatar playerAvatarPrefab)

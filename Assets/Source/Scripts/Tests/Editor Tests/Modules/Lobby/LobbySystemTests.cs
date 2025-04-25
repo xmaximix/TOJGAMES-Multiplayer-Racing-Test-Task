@@ -1,5 +1,3 @@
-// Editor_Tests/Modules/Lobby/LobbySystemTests.cs
-
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;

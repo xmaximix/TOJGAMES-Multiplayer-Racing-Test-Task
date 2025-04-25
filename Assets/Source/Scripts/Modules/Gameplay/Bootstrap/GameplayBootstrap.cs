@@ -16,7 +16,6 @@ namespace TojGamesTask.Modules.Gameplay
         private readonly RaceSystem race;
         private readonly CountdownService countdown;
 
-        [Inject]
         public GameplayBootstrap(
             INetworkService network,
             CarFactory factory,

@@ -21,7 +21,6 @@ namespace TojGamesTask.Modules.Gameplay.Core
         public Subject<int> Ticks => ticks;
         public Subject<Unit> Finished => finished;
 
-        [Inject]
         public CountdownService(
             TrackScript track,
             INetworkService network,

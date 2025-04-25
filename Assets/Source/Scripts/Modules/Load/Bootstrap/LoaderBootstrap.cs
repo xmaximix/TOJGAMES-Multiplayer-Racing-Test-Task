@@ -9,7 +9,6 @@ namespace TojGamesTask.Modules.Load.Bootstrap
     {
         private readonly ISceneService sceneService;
 
-        [Inject]
         public LoaderBootstrap(ISceneService sceneService) => this.sceneService = sceneService;
 
         public void Initialize()
