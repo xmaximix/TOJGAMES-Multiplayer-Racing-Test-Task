@@ -4,7 +4,7 @@ This project is a quick prototype of a multiplayer racing game using Photon Fusi
 Players can enter a nickname, join a lobby, start a race, drive cars, and see a finish screen with results.  
 Everything works across scenes, and core systems are modular.
 
-What could be improved:.
+##What could be improved.
 Right now, many objects like the track and views are already in the scenes. In production, they should be instantiated at runtime.  
 There’s no real game loop (no Restart, Pause).  
 I’m not handling errors well, like connection failures.  
