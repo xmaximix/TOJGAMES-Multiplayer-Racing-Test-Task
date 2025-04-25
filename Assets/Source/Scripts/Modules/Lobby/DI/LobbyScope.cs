@@ -15,27 +15,18 @@ namespace TojGamesTask.Modules.Lobby.DI
 {
     public class LobbyScope : BaseLifetimeScope
     {
-        [SerializeField] private LobbyView _lobbyView;
-        [SerializeField] private PlayerAvatar playerAvatarPrefab;
-        [SerializeField] private InputActionAsset _inputAsset;
+        [Header("Lobby UI")]
+        [SerializeField] private LobbyView lobbyView;
 
         protected override void Configure(IContainerBuilder builder)
         {
             base.Configure(builder);
 
-            builder.RegisterInstance(_inputAsset);
-            builder.Register<IInputService, UnityInputService>(Lifetime.Singleton);
-
-            builder.RegisterInstance(playerAvatarPrefab);
-
-            builder.Register<ILogger, UnityLogger>(Lifetime.Singleton);
-
-            builder.Register<INetworkService, FusionNetworkService>(Lifetime.Singleton);
-            builder.Register<ISceneService, UnitySceneService>(Lifetime.Singleton);
             builder.Register<ILobbySystem, LobbySystem>(Lifetime.Singleton);
 
-            builder.RegisterComponent(_lobbyView);
-            builder.Register<LobbyPresenter>(Lifetime.Singleton).As<IInitializable>();
+            builder.RegisterComponent(lobbyView);
+
+            builder.RegisterEntryPoint<LobbyPresenter>();
         }
     }
 }

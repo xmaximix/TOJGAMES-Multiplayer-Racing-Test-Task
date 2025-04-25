@@ -18,12 +18,13 @@ namespace TojGamesTask.Modules.Lobby.Presentation
 {
     public sealed class LobbyPresenter : IInitializable, IDisposable
     {
-        private readonly LobbyView _view;
-        private readonly ILobbySystem _lobby;
-        private readonly INetworkService _net;
-        private readonly ISceneService _scenes;
-        private readonly ILogger _log;
-        private readonly CompositeDisposable _d = new();
+        private readonly LobbyView view;
+        private readonly ILobbySystem lobby;
+        private readonly INetworkService net;
+        private readonly ISceneService scenes;
+        private readonly ILogger log;
+        private readonly CompositeDisposable d = new();
+        private PlayerAvatar avatar;
 
         [Inject]
         public LobbyPresenter(
@@ -33,11 +34,11 @@ namespace TojGamesTask.Modules.Lobby.Presentation
             ISceneService scenes,
             ILogger log)
         {
-            _view = view;
-            _lobby = lobbySystem;
-            _net = net;
-            _scenes = scenes;
-            _log = log;
+            this.view = view;
+            lobby = lobbySystem;
+            this.net = net;
+            this.scenes = scenes;
+            this.log = log;
         }
 
         public void Initialize()
@@ -50,129 +51,137 @@ namespace TojGamesTask.Modules.Lobby.Presentation
 
         private void SetupPanels()
         {
-            _view.NamePanel.SetActive(true);
-            _view.LobbyPanel.SetActive(false);
+            view.NamePanel.SetActive(true);
+            view.LobbyPanel.SetActive(false);
         }
 
         private void BindViewActions()
         {
-            _view.JoinButton.OnClickAsObservable()
+            view.JoinButton.OnClickAsObservable()
                 .Subscribe(_ => JoinFlow().Forget())
-                .AddTo(_d);
+                .AddTo(d);
 
-            _view.StartButton.OnClickAsObservable()
-                .Subscribe(_ => _lobby.StartCommand.Execute(Unit.Default))
-                .AddTo(_d);
+            view.StartButton.OnClickAsObservable()
+                .Subscribe(_ => lobby.StartCommand.Execute(Unit.Default))
+                .AddTo(d);
 
-            _view.LeaveButton.OnClickAsObservable()
-                .Subscribe(_ => _lobby.LeaveCommand.Execute(Unit.Default))
-                .AddTo(_d);
+            view.LeaveButton.OnClickAsObservable()
+                .Subscribe(_ => lobby.LeaveCommand.Execute(Unit.Default))
+                .AddTo(d);
         }
 
         private void BindLobbyEvents()
         {
-            _lobby.IsHost
+            lobby.IsHost
                 .Subscribe(isHost =>
                 {
-                    _view.StartButton.gameObject.SetActive(isHost);
-                    _view.LeaveButton.gameObject.SetActive(true);
+                    view.StartButton.gameObject.SetActive(isHost);
+                    view.LeaveButton.gameObject.SetActive(true);
                 })
-                .AddTo(_d);
+                .AddTo(d);
 
-            var playerCountChanged = _lobby.Players.ObserveAdd()
+            var playerCountChanged = lobby.Players.ObserveAdd()
                 .Select(_ => Unit.Default)
-                .Merge(_lobby.Players.ObserveRemove().Select(_ => Unit.Default));
+                .Merge(lobby.Players.ObserveRemove().Select(_ => Unit.Default));
 
             playerCountChanged
                 .Subscribe(_ =>
                 {
-                    _view.PlayerCountText.text = $"Players Count: {_lobby.Players.Count}";
+                    view.PlayerCountText.text = $"Players Count: {lobby.Players.Count}";
                     RefreshPlayerList();
                 })
-                .AddTo(_d);
+                .AddTo(d);
 
-            _lobby.StartCommand
+            lobby.StartCommand
                 .Subscribe(_ =>
                 {
-                    if (!_net.IsHost)
+                    if (!net.IsHost)
                         return;
 
-                    int raceIndex = SceneUtility.GetBuildIndexByScenePath("Assets/Source/Scenes/Race.unity");
-                    var raceRef   = SceneRef.FromIndex(raceIndex);
+                    var raceIndex = SceneUtility.GetBuildIndexByScenePath("Assets/Source/Scenes/Race.unity");
+                    var raceRef = SceneRef.FromIndex(raceIndex);
 
-                    _net.Runner.LoadScene(
-                        raceRef   
+                    net.Runner.LoadScene(
+                        raceRef
                     );
                 })
-                .AddTo(_d);
+                .AddTo(d);
 
-            _lobby.LeaveCommand
+            lobby.LeaveCommand
                 .Subscribe(_ => HandleLeave())
-                .AddTo(_d);
+                .AddTo(d);
         }
 
         private void BindNetworkEvents()
         {
-            _net.SessionEnded
+            net.SessionEnded
                 .Subscribe(_ => HandleSessionEnd())
-                .AddTo(_d);
+                .AddTo(d);
         }
 
         private async UniTaskVoid JoinFlow()
         {
-            var name = _view.NameInput.text.Trim();
-            var code = _view.LobbyCodeInput.text.Trim();
+            var name = view.NameInput.text.Trim();
+            var code = view.LobbyCodeInput.text.Trim();
             if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(code))
             {
-                _log.LogWarning("Name or lobby code empty.");
+                log.LogWarning("Name or lobby code empty.");
                 return;
             }
 
-            if (!await _net.StartGameAsync(code, name))
+            if (!await net.StartGameAsync(code, name))
             {
-                _log.LogWarning($"Failed to join lobby '{code}'.");
+                log.LogWarning($"Failed to join lobby '{code}'.");
                 return;
             }
 
             EnableLobbyPanel();
             await AssignLocalPlayerName(name);
-            _log.Log($"Joined lobby '{code}' as '{name}'.");
+            await UniTask.WaitUntil(() => net.Runner.LocalPlayer != default);
+            net.RegisterNickname(net.LocalPlayer, name);
+
+            if (!net.IsHost && avatar != null)
+            {
+                avatar.RPC_SendName(name);
+            }
+            
+            log.Log($"Joined lobby '{code}' as '{name}'.");
         }
 
         private void EnableLobbyPanel()
         {
-            _view.LobbyPanel.SetActive(true);
-            _view.NamePanel.SetActive(false);
-            _view.LobbyCodeText.text = $"Lobby Code: {_net.Runner.SessionInfo.Name}";
+            view.LobbyPanel.SetActive(true);
+            view.NamePanel.SetActive(false);
+            view.LobbyCodeText.text = $"Lobby Code: {net.Runner.SessionInfo.Name}";
         }
 
         private async UniTask AssignLocalPlayerName(string name)
         {
-            await UniTask.WaitUntil(() => _net.Runner.TryGetPlayerObject(_net.LocalPlayer, out _));
-            var avatar = _net.Runner.GetPlayerObject(_net.LocalPlayer).GetComponent<PlayerAvatar>();
+            await UniTask.WaitUntil(() => net.Runner.TryGetPlayerObject(net.LocalPlayer, out _));
+            avatar = net.Runner.GetPlayerObject(net.LocalPlayer).GetComponent<PlayerAvatar>();
             avatar.RPC_SetName(name);
         }
 
         private void HandleLeave()
         {
-            _net.Shutdown();
+            net.Shutdown();
             SetupPanels();
         }
 
         private void HandleSessionEnd()
         {
             SetupPanels();
-            _lobby.LeaveCommand.Execute(Unit.Default);
+            lobby.LeaveCommand.Execute(Unit.Default);
         }
 
         private void RefreshPlayerList()
         {
-            _view.PlayerListText.text = string.Join("\n", _lobby.Players.Select(p => p.Name));
+            view.PlayerListText.text = string.Join("\n", lobby.Players.Select(p => p.Name));
         }
 
         public void Dispose()
         {
-            _d.Dispose();
+            d.Dispose();
         }
     }
 }

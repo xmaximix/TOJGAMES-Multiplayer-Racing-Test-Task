@@ -17,8 +17,8 @@ namespace Editor_Tests.Modules.Lobby
     [TestFixture]
     public class LobbySystemTests
     {
-        private LobbySystem _system;
-        private FakeNetwork _net;
+        private LobbySystem system;
+        private FakeNetwork net;
 
         sealed class FakeNetwork : INetworkService
         {
@@ -28,6 +28,8 @@ namespace Editor_Tests.Modules.Lobby
             public Subject<Unit> SessionEnded { get; } = new();
             public Subject<(NetworkRunner runner, PlayerRef player)> PlayerJoined { get; } = new();
             public Subject<(NetworkRunner runner, PlayerRef player)> PlayerLeft { get; }= new();
+            public IReadOnlyDictionary<PlayerRef, string> Nicknames => names;
+            private readonly Dictionary<PlayerRef, string> names = new();
             public bool IsHost { get; set; }
             public PlayerRef LocalPlayer => PlayerRef.FromIndex(0);
             public UniTask<bool> StartGameAsync(string a, string b) => UniTask.FromResult(true);
@@ -39,11 +41,14 @@ namespace Editor_Tests.Modules.Lobby
             }
 
             public void Shutdown() => SessionEnded.OnNext(Unit.Default);
+            public void RegisterNickname(PlayerRef pr, string nick)
+            {
+            }
 
-            private readonly Dictionary<PlayerRef, PlayerAvatar> _avatars = new();
+            private readonly Dictionary<PlayerRef, PlayerAvatar> avatars = new();
 
             public UniTask<PlayerAvatar> GetAvatarAsync(PlayerRef pr) =>
-                _avatars.TryGetValue(pr, out var av)
+                avatars.TryGetValue(pr, out var av)
                     ? UniTask.FromResult(av)
                     : UniTask.FromCanceled<PlayerAvatar>(new CancellationToken(true));
 
@@ -56,7 +61,7 @@ namespace Editor_Tests.Modules.Lobby
                 var avatar = go.AddComponent<PlayerAvatar>();
                 avatar.NameChanged.OnNext((pr, name));
 
-                _avatars[pr] = avatar;
+                avatars[pr] = avatar;
             }
 
             public void RaiseJoin(PlayerRef pr) => PlayerJoined?.OnNext((Runner, pr));
@@ -66,14 +71,14 @@ namespace Editor_Tests.Modules.Lobby
         [SetUp]
         public void SetUp()
         {
-            _net = new FakeNetwork { IsHost = true };
-            _system = new LobbySystem(_net);
+            net = new FakeNetwork { IsHost = true };
+            system = new LobbySystem(net);
         }
 
         [TearDown]
         public void TearDown()
         {
-            _system.Dispose();
+            system.Dispose();
             foreach (var go in Object.FindObjectsOfType<GameObject>())
             {
                 if (go.name.StartsWith("Avatar_") || go.name == "FakeRunner")
@@ -85,27 +90,27 @@ namespace Editor_Tests.Modules.Lobby
         public IEnumerator RaiseJoin_PlayerAppearsInList()
         {
             var p = PlayerRef.FromIndex(42);
-            _net.RegisterAvatar(p, $"Player {p.RawEncoded}");
-            _net.RaiseJoin(p);
+            net.RegisterAvatar(p, $"Player {p.RawEncoded}");
+            net.RaiseJoin(p);
 
             yield return UniTask.NextFrame().ToCoroutine();
 
-            Assert.That(_system.Players.Count, Is.EqualTo(1));
-            Assert.That(_system.Players[0].Id,   Is.EqualTo(p));
-            Assert.That(_system.Players[0].Name, Is.EqualTo($"Player {p.RawEncoded}"));
+            Assert.That(system.Players.Count, Is.EqualTo(1));
+            Assert.That(system.Players[0].Id,   Is.EqualTo(p));
+            Assert.That(system.Players[0].Name, Is.EqualTo($"Player {p.RawEncoded}"));
         }
 
         [UnityTest]
         public IEnumerator DuplicateJoin_Ignored()
         {
             var p = PlayerRef.FromIndex(7);
-            _net.RegisterAvatar(p, $"Player {p.RawEncoded}");
-            _net.RaiseJoin(p);
-            _net.RaiseJoin(p);
+            net.RegisterAvatar(p, $"Player {p.RawEncoded}");
+            net.RaiseJoin(p);
+            net.RaiseJoin(p);
 
             yield return UniTask.NextFrame().ToCoroutine();
 
-            Assert.That(_system.Players.Count, Is.EqualTo(1));
+            Assert.That(system.Players.Count, Is.EqualTo(1));
         }
 
         [UnityTest]
@@ -114,56 +119,56 @@ namespace Editor_Tests.Modules.Lobby
             var a = PlayerRef.FromIndex(1);
             var b = PlayerRef.FromIndex(2);
 
-            _net.RegisterAvatar(a, "A");
-            _net.RegisterAvatar(b, "B");
-            _net.RaiseJoin(a);
-            _net.RaiseJoin(b);
+            net.RegisterAvatar(a, "A");
+            net.RegisterAvatar(b, "B");
+            net.RaiseJoin(a);
+            net.RaiseJoin(b);
 
             yield return UniTask.NextFrame().ToCoroutine();
 
-            _net.RaiseLeft(a);
+            net.RaiseLeft(a);
 
             yield return UniTask.NextFrame().ToCoroutine();
 
-            Assert.That(_system.Players.Count, Is.EqualTo(1));
-            Assert.That(_system.Players[0].Id, Is.EqualTo(b));
+            Assert.That(system.Players.Count, Is.EqualTo(1));
+            Assert.That(system.Players[0].Id, Is.EqualTo(b));
         }
 
         [UnityTest]
         public IEnumerator LeaveNonExisting_DoesNothing()
         {
-            _net.RaiseLeft(PlayerRef.FromIndex(99));
+            net.RaiseLeft(PlayerRef.FromIndex(99));
 
             yield return UniTask.NextFrame().ToCoroutine();
 
-            Assert.That(_system.Players.Count, Is.Zero);
+            Assert.That(system.Players.Count, Is.Zero);
         }
 
         [UnityTest]
         public IEnumerator Dispose_UnsubscribesFromEvents()
         {
             var p = PlayerRef.FromIndex(55);
-            _system.Dispose();
+            system.Dispose();
 
-            _net.RegisterAvatar(p, "X");
-            _net.RaiseJoin(p);
+            net.RegisterAvatar(p, "X");
+            net.RaiseJoin(p);
 
             yield return UniTask.NextFrame().ToCoroutine();
 
-            Assert.That(_system.Players.Count, Is.Zero);
+            Assert.That(system.Players.Count, Is.Zero);
         }
 
         [UnityTest]
         public IEnumerator Commands_EmitButDoNotChangeState()
         {
             int started = 0;
-            _system.StartCommand.Subscribe(_ => started++);
-            _system.StartCommand.Execute(Unit.Default);
+            system.StartCommand.Subscribe(_ => started++);
+            system.StartCommand.Execute(Unit.Default);
 
             yield return UniTask.NextFrame().ToCoroutine();
 
             Assert.That(started, Is.EqualTo(1));
-            Assert.That(_system.Players.Count, Is.Zero);
+            Assert.That(system.Players.Count, Is.Zero);
         }
     }
 }

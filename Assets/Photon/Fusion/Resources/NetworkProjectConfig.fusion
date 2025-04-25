@@ -3,7 +3,7 @@
     "TypeId": "NetworkProjectConfig",
     "PeerMode": 0,
     "LagCompensation": {
-        "Enabled": false,
+        "Enabled": true,
         "HitboxBufferLengthInMs": 200,
         "HitboxDefaultCapacity": 512,
         "CachedStaticCollidersSize": 64
@@ -23,8 +23,8 @@
         "TickRateSelection": {
             "Client": 64,
             "ServerIndex": 0,
-            "ClientSendIndex": 1,
-            "ServerSendIndex": 1
+            "ClientSendIndex": 0,
+            "ServerSendIndex": 0
         }
     },
     "Network": {

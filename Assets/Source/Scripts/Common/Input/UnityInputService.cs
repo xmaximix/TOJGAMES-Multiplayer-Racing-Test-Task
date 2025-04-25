@@ -7,21 +7,21 @@ namespace TojGamesTask.Common.Input
 {
     public sealed class UnityInputService : IInputService, IDisposable
     {
-        private readonly InputAction _steer;
-        private readonly InputAction _throttle;
-        private readonly InputActionAsset _asset;
+        private readonly InputAction steer;
+        private readonly InputAction throttle;
+        private readonly InputActionAsset asset;
 
         public UnityInputService(InputActionAsset inputActions)
         {
-            _asset = inputActions;
-            var map = _asset.FindActionMap("Gameplay", throwIfNotFound: true);
-            _steer = map.FindAction("Steer", throwIfNotFound: true);
-            _throttle = map.FindAction("Throttle", throwIfNotFound: true);
-            _asset.Enable();
+            asset = inputActions;
+            var map = asset.FindActionMap("Gameplay", throwIfNotFound: true);
+            steer = map.FindAction("Steer", throwIfNotFound: true);
+            throttle = map.FindAction("Throttle", throwIfNotFound: true);
+            asset.Enable();
         }
         
-        public float Steer => _steer.ReadValue<float>();
-        public float Throttle => _throttle.ReadValue<float>();
-        public void Dispose() => _asset.Disable();
+        public float Steer => steer.ReadValue<float>();
+        public float Throttle => throttle.ReadValue<float>();
+        public void Dispose() => asset.Disable();
     }
 }

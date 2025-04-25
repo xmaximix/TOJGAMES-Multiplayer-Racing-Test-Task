@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6613595319313774930
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8895420603263760409}
+  - component: {fileID: 4307489445586780247}
+  m_Layer: 0
+  m_Name: Gameplay Scope
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8895420603263760409
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6613595319313774930}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4307489445586780247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6613595319313774930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4fc42b83aa64a538b148fe8e4f95ec4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  parentReference:
+    TypeName: TojGamesTask.Modules.Load.DI.GlobalScope
+  autoRun: 1
+  autoInjectGameObjects: []
+  trackScript: {fileID: 8315070267715844522, guid: 55492f65a0f6d428db0075648ae049a9,
+    type: 3}
+  carPrefab: {fileID: 3371094031791300891, guid: 4a03250eaa233473ab98aaa5e5ffde71,
+    type: 3}
+  cameraFollowPrefab: {fileID: 8051085100821283653, guid: 0ba094372283b4df5b22b41542f0c8a6,
+    type: 3}
+  countdownView: {fileID: 0}
+  hudView: {fileID: 0}
+  finishView: {fileID: 0}
+  carConfig: {fileID: 11400000, guid: 5119b9e804ff446fbad66174d94f8e20, type: 2}
+  countdownConfig: {fileID: 11400000, guid: 53d3e838c0afc4554ab7fedd14da6b60, type: 2}
