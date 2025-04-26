@@ -5,6 +5,7 @@ Players can enter a nickname, join a lobby, start a race, drive cars, and see a 
 Everything works across scenes, and core systems are modular.
 
 What could be improved:
+Noticed a slight countdown desync in the video, it could be fixed by adding a small delay or storing a tick value instead of the time.
 Right now, many objects like the track and views are already in the scenes. In production, they should be instantiated at runtime.  
 There’s no real game loop (no Restart, Pause).  
 I’m not handling errors well, like connection failures.  
